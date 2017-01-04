@@ -7,10 +7,10 @@ const Promise = require('bluebird');
 const request = require('superagent');
 const User = require('../model/user.js');
 const debug = require('debug')('cfgram:auth-route-test');
-
+const serverToggle = require('./lib/serverToggle.js');
 mongoose.Promise = Promise;
+const server = require('../server.js');
 
-require('../server.js');
 
 const url = `user://localhost:${process.env.PORT}`;
 
@@ -21,10 +21,14 @@ const exampleUser = {
 };
 
 describe('Auth routes', function(){
-
   describe('POST: /api/signup', function(){
     debug('POST: /api/signup');
-
+    beforeEach( done => {
+      serverToggle.serverOn(server, done);
+    });
+    afterEach( done => {
+      serverToggle.serverOff(server, done);
+    });
     after( done => {
       User.remove({})
       .then( () => done())

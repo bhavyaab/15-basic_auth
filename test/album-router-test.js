@@ -8,10 +8,11 @@ const debug = require('debug')('cfgram:album-router-test');
 
 const Album = require('../model/album.js');
 const User = require('../model/user.js');
+const serverToggle = require('./lib/serverToggle.js');
 
 mongoose.Promise = Promise;
 
-require('../server.js');
+const server = require('../server.js');
 
 const url = `user://localhost:${process.env.PORT}/api/album`;
 
@@ -26,8 +27,14 @@ const testAlbum ={
 };
 
 
-describe('album-router-test', function(){
+describe('Album Route', function(){
   debug('album-router-test');
+  beforeEach( done => {
+    serverToggle.serverOn(server, done);
+  });
+  afterEach( done => {
+    serverToggle.serverOff(server, done);
+  });
   before( done => {
     var user = new User(testUser);
     user.generatePasswordHash(testUser.password)
@@ -38,12 +45,6 @@ describe('album-router-test', function(){
       done();
     })
    .catch(done);
-  });
-
-  afterEach( done =>{
-    User.remove({})
-    .then( () => done())
-    .catch(done);
   });
   afterEach( done =>{
     Album.remove({})
@@ -60,6 +61,7 @@ describe('album-router-test', function(){
        if(err) return done(err);
 
        expect(res.status).to.equal(200);
+       console.log(res.body);
        User.remove({});
      });
       done();
