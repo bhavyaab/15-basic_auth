@@ -11,6 +11,7 @@ mongoose.Promise = Promise;
 
 const bearerRouter = require('./route/album-router.js');
 const authRouter = require('./route/auth-router.js');
+const picRouter = require('./route/pic-router.js');
 const errors = require('./lib/error-middleware.js');
 
 
@@ -23,6 +24,7 @@ app.use(cors());
 app.use(morgan('dev'));
 app.use(authRouter);
 app.use(bearerRouter);
+app.use(picRouter);
 app.use(errors);
 
 const server = module.exports = app.listen(PORT, () => {
