@@ -13,7 +13,7 @@ const Pic = require('../model/pics.js');
 const Album = require('../model/album.js');
 const User = require('../model/user.js');
 
-const bearAuth = required('../lib/bearer-auth-middleware.js');
+const bearAuth = require('../lib/bearer-auth-middleware.js');
 
 AWS.config.setPromisesDependency(require('bluebird'));
 
@@ -22,19 +22,21 @@ const dataDir = `${__dirname}/../data`;
 const upload = multer({ dest: dataDir });
 const picRouter = module.exports = Router();
 
-function s3uploadProm(param){
+function s3uploadProm(params){
   debug('s3uploadProm');
-
-  return new Promise((resolve, reject){
-    s3.upload( params, (err, s3date) =>{
+  console.log('###############################');
+  return new Promise((resolve, reject) => {
+    s3.upload( params, (err, s3data) =>{
+      console.log('s3data=====+++++', s3data);
       if(err) return reject(err);
-       resolve(s3data);
-     });
+      resolve(s3data);
+    });
   });
-};
+}
 
-picRouter.post('/api/album/:albumID/pic', bearAuth, upload.single('image'), furnction(req, res, next){
-  debug('POST');
+
+picRouter.post('/api/album/:albumID/pic', bearAuth, upload.single('image'), function(req, res, next){
+  debug('POST: /api/album/:albumID/pic');
 
   if(!req.file){
     return next(createError(400, 'file not found'));
@@ -44,18 +46,18 @@ picRouter.post('/api/album/:albumID/pic', bearAuth, upload.single('image'), furn
     return next(createError(500, 'file not saved'));
   }
   let ext = path.extname(req.file.originalname);
+  console.log('file name ==========', req.file.filename);
   let params = {
     ACL: 'public-read',
-    BUCKET: process.env.AWS_BUCKET,
+    Bucket: process.env.AWS_BUCKET,
     Key: `${req.file.filename}${ext}`,
     Body: fs.createReadStream(req.file.path),
-  }
-
+  };
   Album.findById(req.params.albumID)
-  .then( () => {
-    s3uploadProm(params);
-  })
+  .then( () => s3uploadProm(params))
   .then( s3data => {
+    if(!s3data) return next(createError(401, 'upload faild'));
+    console.log('s3data ----------', s3data);
     del([`${dataDir}/*`]);
     let picDate = {
       name : req.body.name,
@@ -64,7 +66,7 @@ picRouter.post('/api/album/:albumID/pic', bearAuth, upload.single('image'), furn
       imageURI : s3data.Location,
       userID : req.user._id,
       albumID : req.params.albumID,
-    }
+    };
     return new Pic(picDate).save();
   })
   .then( pic => res.json(pic))

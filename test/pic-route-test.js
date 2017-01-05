@@ -2,7 +2,8 @@
 
 const debug = require('debug');
 const request = require('superagent');
-const chai = require('chai').expect;
+const expect = require('chai').expect;
+const mongoose = require('mongoose');
 
 const Pic = require('../model/pics.js');
 const Album = require('../model/album.js');
@@ -13,54 +14,71 @@ mongoose.Promise = Promise;
 
 const server = require('../server.js');
 
-const url = `user://localhost:${process.env.PORT}/api/album`;
+const url = `http://localhost:${process.env.PORT}/api/album`;
 
 const testUser = {
-  username: 'testUser',
+  username: 'test-User',
   password: '1234',
-  email: 'testuser@cf.com'
+  email: 'test-user@cf.com'
 };
-const testAlbum ={
+const testAlbum = {
   name: 'testName',
   desc: 'destDesc'
 };
- const testPic = {
-   name: 'test name',
-   desc: 'test pic description',
- };
-
- describe( 'POST: /api/album/:albumID/pic', function(){
-  describe( 'with a valid token and a valid data', function(){
-     before( done => {
-        var user = new User(testUser)
-       user.generatePasswordHash(testUser.password)
-       .then( () => user.save())
-       .then( () => user.generateToken())
-       .then( token => {
-         this.token = token;
-         done();
-       })
-       .catch(done);
-     });
-    after( done => {
-      delete testUser.userID;
+const testPic = {
+  name: 'test name',
+  desc: 'test pic description',
+  image: `${__dirname}/./data/image.png`
+};
+describe('PIC ROUTE: test', function(){
+  debug('pic route');
+  before( done => {
+    var user = new User(testUser);
+    user.generatePasswordHash(testUser.password)
+    .then( () => user.save())
+    .then( () => {
+      this.testUser = user;
+      testAlbum.userID = user._id.toString();
+      return user.generateToken();
+    })
+    .then( token => {
+      this.token = token;
       done();
-    });
-
-    it('should return a pic', done => {
-      request.post(`${url}/:albumID/pic`)
-      .set({
-        Authorization: `Bearer ${this.token}`
-      })
-      .field({name: 'test name'})
-      .field({desc: 'test pic description'})
-      .attach({file : `${__dirname}/./data/image.png` })
-      .end( (err, res) => {
-        if(err) return done(err);
-
-        expect(res.status).to.equal(200);
-        done();
+    })
+    .catch(done);
+  });
+  before( done => {
+    Album(testAlbum).save()
+    .then( album => {
+      this.testAlbum = album;
+      done();
+    })
+    .catch(done);
+  });
+  after( done => {
+    Album.remove({})
+    .then( () => {
+      User.remove({})
+      .then( () => done());
+    })
+    .catch(done);
+  });
+  describe('POST ROUTE TEST FOR PIC', () => {
+    debug('POST ROUTE');
+    describe('POST PIC WITH VALID REQUEST AND VALID BODY', () => {
+      debug('VALID REQUEST AND VALID BODY');
+      it('should post valid pic with valid request', done => {
+        request.post(`${url}/${this.testAlbum._id}/pic`)
+        .set({Authorization: `Bearer ${this.token}`})
+        .field('name', testPic.name)
+        .field('desc', testPic.desc)
+        .attach('image', testPic.image)
+        .end( (err, res) => {
+          if(err) return done(err);
+          expect(res.status).to.equal(200);
+          done();
+        });
       });
     });
   });
- });
+});

@@ -20,7 +20,10 @@ albumRouter.post('/api/album', bearerAuth, jsonParser, function(req, res, next){
 
 
   new Album(req.body).save()
-  .then( album => res.json(album))
+  .then( album => {
+    console.log('album:-', album);
+    res.json(album);
+  })
   .catch(next);
 });
 
